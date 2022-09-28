@@ -29,6 +29,13 @@ app.use(
   morgan(":method :url :status :res[content-length] - :response-time ms :body")
 );
 
+app.get("/info", (request, response) => {
+  Person.count({}).then((count) => {
+    response.send(`<p>Phonebook has info for ${count} people</p>
+                    <p>${new Date()}</p>`);
+  });
+});
+
 app.get("/", (request, response) => {
   response.send("<h1>Hello to my Phonebook!</h1>");
 });
