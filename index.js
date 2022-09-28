@@ -1,16 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 var morgan = require("morgan");
-const mongoose = require("mongoose");
-
-const url = process.env.MONGODB_URI;
-mongoose.connect(url);
-
-const personSchema = new mongoose.Schema({
-  name: String,
-  number: String,
-});
-const Person = mongoose.model("Person", personSchema);
+const Person = require("./models/person");
 
 const app = express();
 app.use(express.static("build"));
@@ -24,28 +15,7 @@ app.use(
   morgan(":method :url :status :res[content-length] - :response-time ms :body")
 );
 
-let persons = [
-  {
-    name: "Artooo Hellas",
-    number: "040-123456",
-    id: 1,
-  },
-  {
-    name: "Ada Lovelace",
-    number: "39-44-5323523",
-    id: 2,
-  },
-  {
-    name: "Dan Abramov",
-    number: "12-43-234345",
-    id: 3,
-  },
-  {
-    name: "Mary Poppendieck",
-    number: "39-23-6423122",
-    id: 4,
-  },
-];
+let persons = [];
 
 app.get("/", (request, response) => {
   response.send("<h1>Hello to my Phonebook!</h1>");
@@ -57,10 +27,6 @@ app.get("/info", (request, response) => {
     <p>${new Date()}</p>`
   );
 });
-
-// app.get("/api/persons", (request, response) => {
-//   response.json(persons);
-// });
 
 app.get("/api/persons", (request, response) => {
   Person.find({}).then((people) => {
@@ -84,13 +50,15 @@ app.delete("/api/persons/:id", (request, response) => {
   response.status(204).end();
 });
 
-const generateId = () => {
-  const maxId = persons.length > 0 ? Math.max(...persons.map((n) => n.id)) : 0;
-  return maxId + 1;
-};
-
 app.post("/api/persons", (request, response) => {
-  const body = request.body;
+  let body = undefined;
+  try {
+    body = JSON.parse(request.body);
+  } catch (err) {
+    return response.status(400).json({
+      error: "missing content",
+    });
+  }
 
   if (!body.name) {
     return response.status(400).json({
@@ -102,22 +70,24 @@ app.post("/api/persons", (request, response) => {
       error: "missing number",
     });
   }
+  // const duplicatedName = persons.find((p) => p.name === body.name);
+  // if (duplicatedName) {
+  //   return response.status(400).json({
+  //     error: "name must be unique",
+  //   });
+  // }
 
-  const duplicatedName = persons.find((p) => p.name === body.name);
-  if (duplicatedName) {
-    return response.status(400).json({
-      error: "mame must be unique",
-    });
-  }
-
-  const person = {
+  const person = Person({
     name: body.name,
     number: body.number,
-    id: generateId(),
-  };
+  });
 
-  persons = persons.concat(person);
-  response.json(person);
+  person
+    .save()
+    .then((resp) => {
+      response.json(person);
+    })
+    .catch((err) => console.log(err));
 });
 
 function assignBody(req, res, next) {
