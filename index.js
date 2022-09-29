@@ -67,7 +67,7 @@ app.delete("/api/persons/:id", (request, response, next) => {
     .catch((error) => next(error));
 });
 app.put("/api/persons/:id", (request, response, next) => {
-  const body = request.body;
+  const body = JSON.parse(request.body);
   const person = {
     name: body.name,
     number: body.number,
@@ -81,12 +81,12 @@ app.put("/api/persons/:id", (request, response, next) => {
 });
 
 app.post("/api/persons", (request, response, next) => {
-  const body = request.body;
-
+  const body = JSON.parse(request.body);
   const person = Person({
     name: body.name,
     number: body.number,
   });
+  console.log(person);
 
   person
     .save()
